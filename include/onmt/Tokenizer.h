@@ -48,7 +48,8 @@ namespace onmt
     bool _with_separators;
     bool _segment_case;
 
-    std::vector<std::string> bpe_segment(const std::vector<std::string>& tokens);
+    std::vector<std::string> bpe_segment(const std::vector<std::string>& tokens,
+                                         std::vector<std::vector<std::string> >& features);
 
     bool has_left_join(const std::string& word);
     bool has_right_join(const std::string& word);

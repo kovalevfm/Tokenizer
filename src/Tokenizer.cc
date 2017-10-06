@@ -3,6 +3,7 @@
 #include "onmt/CaseModifier.h"
 #include "onmt/unicode/Unicode.h"
 
+
 namespace onmt
 {
 
@@ -250,9 +251,8 @@ namespace onmt
       words.push_back(token);
 
     if (_bpe)
-      words = bpe_segment(words);
-
-    if (_case_feature)
+      words = bpe_segment(words, features);
+    else if (_case_feature)
     {
       std::vector<std::string> case_feat;
 
@@ -267,13 +267,18 @@ namespace onmt
     }
   }
 
-  std::vector<std::string> Tokenizer::bpe_segment(const std::vector<std::string>& tokens)
+  std::vector<std::string> Tokenizer::bpe_segment(const std::vector<std::string>& tokens, std::vector<std::vector<std::string> >& features)
   {
     std::vector<std::string> segments;
-
+    std::vector<std::string> case_feat;
     for (size_t i = 0; i < tokens.size(); ++i)
     {
       std::string token = tokens[i];
+      std::pair<std::string, char> data;
+      if (_case_feature){
+        data = CaseModifier::extract_case(tokens[i]);
+        token = data.first;
+      }
 
       bool left_sep = false;
       bool right_sep = false;
@@ -305,18 +310,34 @@ namespace onmt
 
       for (size_t j = 0; j < encoded.size(); ++j)
       {
+        if (_case_feature){
+          if (data.second == 'U') {
+            char _u_case = CaseModifier::extract_case(CaseModifier::apply_case(token, data.second)).second;
+            case_feat.emplace_back(1, _u_case);
+          } else if (j != 0 && data.second == 'C'){
+            case_feat.emplace_back(1, 'L');
+          } else {
+            case_feat.emplace_back(1, data.second);
+          }
+        }
         segments.push_back(encoded[j]);
 
         if (_joiner_annotate && j + 1 < encoded.size())
         {
-          if (_joiner_new)
+          if (_joiner_new){
             segments.push_back(_joiner);
+            if (_case_feature){
+              case_feat.emplace_back(1, 'N');
+            }
+          }
           else
             segments.back().append(_joiner);
         }
       }
     }
-
+    if (_case_feature){
+      features.push_back(case_feat);
+    }
     return segments;
   }
 
